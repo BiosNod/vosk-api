@@ -4,6 +4,7 @@
 # Example usage using Dutch (nl) recognition model: `python test_microphone.py -m nl`
 # For more help run: `python test_microphone.py -h`
 
+import json
 import argparse
 import queue
 import sys
@@ -57,7 +58,8 @@ try:
         args.samplerate = int(device_info["default_samplerate"])
         
     if args.model is None:
-        model = Model(lang="en-us")
+        #model = Model(lang="en-us")
+        model = Model(lang="ru")
     else:
         model = Model(lang=args.model)
 
@@ -73,17 +75,29 @@ try:
         print("#" * 80)
 
         rec = KaldiRecognizer(model, args.samplerate)
+        recognizedText = ''
         while True:
             data = q.get()
             if rec.AcceptWaveform(data):
-                print(rec.Result())
+                stepResult = rec.Result()
+                stepText = json.loads(stepResult)['text']
+
+                if stepText:
+                    stepText = stepText.capitalize()
+                    # print(stepResult)
+                    print(stepText)
+                    if recognizedText:
+                        recognizedText += ' '
+                    recognizedText += stepText + '.'
             else:
-                print(rec.PartialResult())
+                partialResult = rec.PartialResult()
+                # print(rec.PartialResult())
             if dump_fn is not None:
                 dump_fn.write(data)
 
 except KeyboardInterrupt:
     print("\nDone")
+    print(json.dumps({'result': recognizedText}, ensure_ascii=False))
     parser.exit(0)
 except Exception as e:
     parser.exit(type(e).__name__ + ": " + str(e))
